@@ -1,0 +1,183 @@
+name: Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: 'Enable debug output'
+        required: false
+        default: 'false'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        build_type: [Debug, Release]
+        compiler: [gcc, clang]
+        include:
+          - compiler: gcc
+            cc: gcc-11
+            cxx: g++-11
+          - compiler: clang
+            cc: clang-14
+            cxx: clang++-14
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          pkg-config \
+          libxml2-dev \
+          ${{ matrix.cc }} \
+          ${{ matrix.cxx }}
+    
+    - name: Configure CMake
+      env:
+        CC: ${{ matrix.cc }}
+        CXX: ${{ matrix.cxx }}
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} \
+          -DBUILD_TESTS=ON \
+          -DBUILD_EXAMPLES=ON \
+          -DBUILD_RT=ON
+    
+    - name: Build project
+      run: |
+        cd build
+        cmake --build . --config ${{ matrix.build_type }} -j$(nproc)
+    
+    - name: Run tests
+      run: |
+        cd build
+        ctest --output-on-failure --verbose -C ${{ matrix.build_type }}
+    
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: test-results-${{ matrix.compiler }}-${{ matrix.build_type }}
+        path: build/Testing/
+        
+    - name: Generate test summary
+      if: always()
+      run: |
+        cd build
+        echo "## Test Results (${{ matrix.compiler }} - ${{ matrix.build_type }})" >> $GITHUB_STEP_SUMMARY
+        ctest --output-on-failure -C ${{ matrix.build_type }} 2>&1 | tee test_output.txt || true
+        if [ -f test_output.txt ]; then
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat test_output.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+        fi
+
+  coverage:
+    runs-on: ubuntu-latest
+    needs: build-and-test
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          build-essential \
+          cmake \
+          pkg-config \
+          libxml2-dev \
+          lcov
+    
+    - name: Configure with coverage
+      run: |
+        mkdir -p build
+        cd build
+        cmake .. \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DBUILD_TESTS=ON \
+          -DCMAKE_CXX_FLAGS="--coverage" \
+          -DCMAKE_C_FLAGS="--coverage"
+    
+    - name: Build with coverage
+      run: |
+        cd build
+        cmake --build . -j$(nproc)
+    
+    - name: Run tests with coverage
+      run: |
+        cd build
+        ctest --output-on-failure || true
+    
+    - name: Generate coverage report
+      run: |
+        cd build
+        lcov --capture --directory . --output-file coverage.info || true
+        lcov --remove coverage.info '/usr/*' '*/tests/*' '*/examples/*' --output-file coverage_filtered.info || true
+        lcov --list coverage_filtered.info || true
+    
+    - name: Upload coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: build/coverage_filtered.info
+
+  realtime-configuration-check:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      
+    - name: Check RT kernel availability
+      run: |
+        echo "## Real-Time Configuration Check" >> $GITHUB_STEP_SUMMARY
+        echo "### Kernel Information" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        uname -a >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+        echo "### RT Kernel Check" >> $GITHUB_STEP_SUMMARY
+        if uname -v | grep -i preempt; then
+          echo "PREEMPT support detected" >> $GITHUB_STEP_SUMMARY
+        else
+          echo "PREEMPT RT kernel not detected (expected in CI)" >> $GITHUB_STEP_SUMMARY
+        fi
+    
+    - name: Check scheduling capabilities
+      run: |
+        echo "### Scheduling Capabilities" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        echo "SCHED_FIFO min priority: $(getconf _SC_THREAD_PRIORITY_MIN 2>/dev/null || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+        echo "SCHED_FIFO max priority: $(getconf _SC_THREAD_PRIORITY_MAX 2>/dev/null || echo 'N/A')" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+    
+    - name: Check CPU information
+      run: |
+        echo "### CPU Information" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        lscpu | grep -E "^CPU\(s\)|^Model name|^Thread" >> $GITHUB_STEP_SUMMARY || echo "CPU info not available" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        
+        echo "### CPU Isolation Recommendations" >> $GITHUB_STEP_SUMMARY
+        echo "For production real-time systems:" >> $GITHUB_STEP_SUMMARY
+        echo "1. Use \`isolcpus\` kernel parameter to reserve CPUs" >> $GITHUB_STEP_SUMMARY
+        echo "2. Pin RT tasks to isolated CPUs using \`sched_setaffinity()\`" >> $GITHUB_STEP_SUMMARY
+        echo "3. Move IRQs away from RT CPUs via \`/proc/irq/*/smp_affinity\`" >> $GITHUB_STEP_SUMMARY
+        echo "4. Set CPU governor to 'performance': \`cpufreq-set -g performance\`" >> $GITHUB_STEP_SUMMARY
+        echo "5. Lock memory with \`mlockall(MCL_CURRENT | MCL_FUTURE)\`" >> $GITHUB_STEP_SUMMARY

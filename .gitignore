@@ -1,0 +1,44 @@
+build/
+
+cmake-build-debug/
+
+# CodeQL build directory
+_codeql_build_dir/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+
+# Examples executables
+examples/gpio_blink
+examples/timer_demo
+
+# Documentation build
+docs/html/
+docs/latex/
+
+# Testing
+*.gcov
+*.gcda
+*.gcno
+coverage/
+coverage.info
+coverage_filtered.info
+Testing/
+test_output.txt
+CTestTestfile.cmake
+
+# Package managers
+.DS_Store
+Thumbs.db
