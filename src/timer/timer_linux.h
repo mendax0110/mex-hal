@@ -11,7 +11,7 @@
 namespace mex_hal
 {
     /// @brief Timer Linux implementation class \class TimerLinux
-    class TimerLinux : public TimerInterface
+    class TimerLinux final : public TimerInterface
     {
     private:
         TimerMode mode = TimerMode::ONE_SHOT;

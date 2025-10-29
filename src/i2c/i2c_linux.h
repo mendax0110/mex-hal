@@ -15,7 +15,7 @@
 namespace mex_hal
 {
     /// @brief I2C Linux implementation class \class I2CLinux
-    class I2CLinux : public I2CInterface
+    class I2CLinux final : public I2CInterface
     {
     private:
         FileDescriptor fd_;

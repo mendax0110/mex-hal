@@ -66,11 +66,23 @@ namespace mex_hal
          */
         [[nodiscard]] virtual bool isRealtimeConfigured() const = 0;
 
+        /**
+         * @brief Get the current real-time state
+         * @return The current RealTimeState
+         */
+        [[nodiscard]] virtual RealTimeState getRealtimeState() const = 0;
 
-        virtual RealTimeState getRealtimeState() const = 0;
-
+        /**
+         * @brief Set the real-time scheduling policy
+         * @param policy The desired RealTimePolicy
+         * @return The applied RealTimePolicy
+         */
         virtual RealTimePolicy setRealTimePolicy(RealTimePolicy policy) = 0;
 
+        /**
+         * @brief Get the current real-time scheduling policy
+         * @return The current RealTimePolicy
+         */
         [[nodiscard]] virtual RealTimePolicy getRealTimePolicy() const = 0;
 
 

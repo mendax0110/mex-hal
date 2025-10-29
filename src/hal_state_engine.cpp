@@ -65,7 +65,7 @@ void HALStateEngine::engineLoop()
         std::cerr << "[HALStateEngine] Failed to configure real-time mode\n";
     }
 
-    const ADCConfig adcConfig{ADCResolution::BITS_12, 3300, true};
+    constexpr ADCConfig adcConfig{ADCResolution::BITS_12, 3300, true};
     const auto adcDevice = hal->createADC();
     adcDevice->init(0, adcConfig);
 
@@ -75,7 +75,7 @@ void HALStateEngine::engineLoop()
     const auto i2cDevice = hal->createI2C();
     i2cDevice->init(2);
 
-    const UARTConfig uartConfig{9600, 8, 1, false};
+    constexpr UARTConfig uartConfig{9600, 8, 1, false};
     const auto uartDevice = hal->createUART();
     uartDevice->init("/dev/ttyS0", uartConfig);
 

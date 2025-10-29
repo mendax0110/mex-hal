@@ -89,7 +89,12 @@ void ResourceVisualizer::gatherProcessMetrics(ResourceUsage& usage)
     // Open file descriptors
     size_t fdCount = 0;
     for (auto& entry : fs::directory_iterator("/proc/self/fd"))
-        ++fdCount;
+    {
+        if (entry.exists())
+        {
+            ++fdCount;
+        }
+    }
     usage.openFDs = fdCount;
 }
 

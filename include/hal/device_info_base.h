@@ -3,6 +3,7 @@
 
 #include <string>
 
+/// @brief Device type enumeration \enum DeviceType
 enum class DeviceType
 {
     GPIO,
@@ -15,6 +16,7 @@ enum class DeviceType
     UNKNOWN
 };
 
+/// @brief Base device information structure \struct DeviceInfoBase
 struct DeviceInfoBase
 {
     DeviceType type = DeviceType::UNKNOWN;

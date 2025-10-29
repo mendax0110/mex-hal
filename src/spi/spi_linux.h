@@ -16,7 +16,7 @@
 namespace mex_hal
 {
     /// @brief SPI Linux implementation class \class SPILinux
-    class SPILinux : public SPIInterface
+    class SPILinux final : public SPIInterface
     {
     private:
         FileDescriptor fd_;

@@ -69,6 +69,10 @@ namespace mex_hal
          */
         void waitForStop();
 
+        /**
+         * @brief Get the singleton instance of HALStateEngine
+         * @return Reference to the HALStateEngine instance
+         */
         static HALStateEngine& getInstance();
     };
 }

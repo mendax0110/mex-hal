@@ -16,12 +16,12 @@
 namespace mex_hal
 {
     /// @brief UART Linux implementation class \class UARTLinux
-    class UARTLinux : public UARTInterface
+    class UARTLinux final : public UARTInterface
     {
     private:
         FileDescriptor fd_;
         std::string devicePath_;
-        UARTConfig currentConfig_;
+        UARTConfig currentConfig_{};
         uint64_t resourceId_ = 0;
         mutable std::mutex uartMutex_;
 

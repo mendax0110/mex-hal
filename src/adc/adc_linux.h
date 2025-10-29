@@ -13,11 +13,11 @@
 namespace mex_hal
 {
     /// @brief ADC Linux implementation class \class ADCLinux
-    class ADCLinux : public ADCInterface
+    class ADCLinux final : public ADCInterface
     {
     private:
         uint8_t device_ = 0;
-        ADCConfig config_;
+        ADCConfig config_{};
         std::atomic<bool> continuousRunning_{false};
         std::atomic<bool> shouldStopContinuous_{false};
         std::thread continuousThread_;

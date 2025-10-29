@@ -13,7 +13,7 @@
 namespace mex_hal
 {
     /// @brief PWM Linux implementation class \class PWMLinux
-    class PWMLinux : public PWMInterface
+    class PWMLinux final : public PWMInterface
     {
     private:
         uint8_t chip_ = 0;

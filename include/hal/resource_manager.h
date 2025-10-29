@@ -166,7 +166,7 @@ namespace mex_hal
          * @brief Get the managed resource ID
          * @return A resource ID
          */
-        uint64_t getResourceId() const { return resourceId_; }
+        [[nodiscard]] uint64_t getResourceId() const { return resourceId_; }
 
     private:
         uint64_t resourceId_;
