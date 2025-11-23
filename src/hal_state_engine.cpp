@@ -234,12 +234,105 @@ void HALStateEngine::engineLoop()
     std::unique_lock<std::mutex> lock(mutex_);
     while (!stopRequested_)
     {
+        for (auto& spi : spiDevices)
+        {
+            try
+            {
+                std::vector<uint8_t> txData = {0xAA, 0x55};
+                std::vector<uint8_t> rxData(2);
+                spi->write(txData);
+                spi->read(rxData, 2);
+                LOG_TRACE("SPI transfer completed");
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("SPI transfer error: " + std::string(e.what()));
+            }
+        }
+
+        for (auto& i2c : i2cDevices)
+        {
+            try
+            {
+                std::vector<uint8_t> writeData = {0x00, 0x00};
+                std::vector<uint8_t> readData(2);
+                uint8_t deviceAddress = 0x50;
+                i2c->writeRead(deviceAddress, writeData, readData);
+                LOG_TRACE("I2C write-read cycle completed");
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("I2C operation error: " + std::string(e.what()));
+            }
+        }
+
+        for (auto& uart : uartDevices)
+        {
+            try
+            {
+                std::vector<uint8_t> data;
+                bool success = uart->read(data, 10);
+                if (success) {
+                    LOG_TRACE("UART read " + std::to_string(data.size()) + " bytes");
+                }
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("UART operation error: " + std::string(e.what()));
+            }
+        }
+
+        for (auto& pwm : pwmDevices)
+        {
+            try
+            {
+                pwm->setDutyCycle(128000);
+                LOG_TRACE("Set duty cycle to 128000 ns");
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("PWM operation error: " + std::string(e.what()));
+            }
+        }
+
+        for (auto& gpio : gpioDevices)
+        {
+            try
+            {
+                auto configs = deviceConfig.getGpioInfos();
+                std::vector<uint8_t> availablePins;
+                for (const auto& config : configs)
+                {
+                    if (config.exported)
+                    {
+                        availablePins.push_back(static_cast<uint8_t>(config.pin));
+                    }
+                }
+                for (const auto& pin : availablePins)
+                {
+                    gpio->write(pin, PinValue::LOW);
+                    LOG_TRACE("Set GPIO pin " + std::to_string(pin) + " to LOW");
+                }
+                for (const auto& pin : availablePins)
+                {
+                    auto result = gpio->read(pin);
+                    std::string resultStr = (result == PinValue::HIGH) ? "HIGH" : "LOW";
+                    LOG_TRACE("Read GPIO pin " + std::to_string(pin) + ": " + resultStr);
+                }
+                LOG_TRACE("GPIO read-write cycle completed");
+            }
+            catch (const std::exception& e)
+            {
+                LOG_ERROR("GPIO operation error: " + std::string(e.what()));
+            }
+        }
+
         for (auto& adc : adcDevices)
         {
             try
             {
-                adc->read(0);
-                LOG_TRACE("ADC read cycle completed");
+                //adc->read(0);
+                //LOG_TRACE("ADC read cycle completed");
             }
             catch (const std::exception& e)
             {
