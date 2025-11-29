@@ -1,6 +1,6 @@
 # MEX-HAL - Hardware Abstraction Layer for Embedded Linux
 
-A professional-grade Hardware Abstraction Layer (HAL) designed for embedded real-time systems running Ubuntu with PREEMPT RT patch. MEX-HAL provides a clean, object-oriented interface to common embedded peripherals while maintaining high performance and real-time characteristics.
+A Hardware Abstraction Layer (HAL) designed for embedded real-time systems running Ubuntu with PREEMPT RT patch. MEX-HAL provides a clean, object-oriented interface to common embedded peripherals while maintaining high performance and real-time characteristics.
 
 ## Table of Contents
 
