@@ -331,8 +331,8 @@ void HALStateEngine::engineLoop()
         {
             try
             {
-                //adc->read(0);
-                //LOG_TRACE("ADC read cycle completed");
+                adc->read(0);
+                LOG_TRACE("ADC read cycle completed");
             }
             catch (const std::exception& e)
             {
