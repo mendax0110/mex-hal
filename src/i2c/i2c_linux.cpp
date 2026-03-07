@@ -43,10 +43,15 @@ bool I2CLinux::init(const uint8_t bus)
 bool I2CLinux::setDeviceAddress(const uint8_t address)
 {
     std::lock_guard<std::mutex> lock(i2cMutex_);
+    return setDeviceAddressLocked(address);
+}
 
+bool I2CLinux::setDeviceAddressLocked(uint8_t address)
+{
     if (!fd_.isValid()) return false;
     if (ioctl(fd_.get(), I2C_SLAVE, address) < 0) return false;
     currentAddress_ = address;
+    addressSet_ = true;
     return true;
 }
 
@@ -54,7 +59,7 @@ bool I2CLinux::write(const std::vector<uint8_t>& data)
 {
     std::lock_guard<std::mutex> lock(i2cMutex_);
 
-    if (!fd_.isValid() || currentAddress_ == 0) return false;
+    if (!fd_.isValid() || !addressSet_) return false;
     return ::write(fd_.get(), data.data(), data.size()) == static_cast<ssize_t>(data.size());
 }
 
@@ -62,7 +67,7 @@ bool I2CLinux::read(std::vector<uint8_t>& data, const size_t length)
 {
     std::lock_guard<std::mutex> lock(i2cMutex_);
 
-    if (!fd_.isValid() || currentAddress_ == 0) return false;
+    if (!fd_.isValid() || !addressSet_) return false;
     data.resize(length);
     const ssize_t bytesRead = ::read(fd_.get(), data.data(), length);
     return bytesRead == static_cast<ssize_t>(length);
@@ -70,9 +75,18 @@ bool I2CLinux::read(std::vector<uint8_t>& data, const size_t length)
 
 bool I2CLinux::writeRead(const uint8_t address, const std::vector<uint8_t> &writeData, std::vector<uint8_t> &readData)
 {
-    if (!setDeviceAddress(address)) return false;
-    if (!write(writeData)) return false;
-    return read(readData, writeData.size());
+    std::lock_guard<std::mutex> lock(i2cMutex_);
+
+    if (!setDeviceAddressLocked(address)) return false;
+
+    if (::write(fd_.get(), writeData.data(), writeData.size()) != static_cast<ssize_t>(writeData.size()))
+    {
+        return false;
+    }
+
+    readData.resize(writeData.size());
+    const ssize_t bytesRead = ::read(fd_.get(), readData.data(), readData.size());
+    return bytesRead == static_cast<ssize_t>(readData.size());
 }
 
 bool I2CLinux::setSpeed(const uint32_t speed)

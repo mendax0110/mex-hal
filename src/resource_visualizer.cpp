@@ -103,12 +103,14 @@ void ResourceVisualizer::buildResourceGraph()
     std::lock_guard<std::mutex> lock(mutex_);
     resourceGraph_.clear();
 
+    const auto& rm = ResourceManager::getInstance();
+
     for (const auto& usage : resourceUsages_)
     {
         ResourceNode node;
         node.id = usage.id;
         node.name = usage.name;
-        // TODO: populate dependencies if ResourceManager tracks them
+        node.dependencies = rm.getDependencies(usage.id);
         resourceGraph_.push_back(node);
     }
 }

@@ -90,19 +90,10 @@ bool SPILinux::write(const std::vector<uint8_t> &data)
 
 bool SPILinux::read(std::vector<uint8_t> &data, size_t length)
 {
-    std::lock_guard<std::mutex> lock(spiMutex_);
+    if (length == 0) return false;
 
-    if (!fd_.isValid() || length == 0) return false;
-    
-    data.resize(length);
     const std::vector<uint8_t> dummy(length, 0);
-    
-    // Unlock before calling transfer to avoid deadlock
-    spiMutex_.unlock();
-    const bool result = transfer(dummy, data);
-    spiMutex_.lock();
-    
-    return result;
+    return transfer(dummy, data);
 }
 
 bool SPILinux::setSpeed(uint32_t speed)

@@ -1,5 +1,5 @@
-#ifndef MEX_HAL_TIMER_LINUX_H
-#define MEX_HAL_TIMER_LINUX_H
+#ifndef MEX_HAL_TIMER_MOCK_H
+#define MEX_HAL_TIMER_MOCK_H
 
 #include "../../include/hal/timer.h"
 #include <thread>
@@ -10,34 +10,34 @@
 /// @brief mex_hal Hardware Abstraction Layer \namespace mex_hal
 namespace mex_hal
 {
-    /// @brief Timer Linux implementation class \class TimerLinux
-    class TimerLinux final : public TimerInterface
+    /// @brief Mock Timer implementation for testing \class TimerMock
+    class TimerMock final : public TimerInterface
     {
     private:
-        TimerMode mode = TimerMode::ONE_SHOT;
-        uint64_t intervalUs = 0;
-        std::atomic<bool> running{false};
-        std::atomic<bool> shouldStop{false};
-        std::thread timerThread;
-        TimerCallback callback{nullptr};
-        std::chrono::steady_clock::time_point startTime;
-        std::mutex callbackMutex;
+        TimerMode mode_ = TimerMode::ONE_SHOT;
+        uint64_t intervalUs_ = 0;
+        std::atomic<bool> running_{false};
+        std::atomic<bool> shouldStop_{false};
+        std::thread timerThread_;
+        TimerCallback callback_{nullptr};
+        std::chrono::steady_clock::time_point startTime_;
+        std::mutex callbackMutex_;
 
         /**
          * @brief Timer loop function
          */
         void timerLoop();
-        
+
     public:
         /**
          * @brief Constructor
          */
-        TimerLinux() = default;
+        TimerMock() = default;
 
         /**
          * @brief Destructor
          */
-        ~TimerLinux() override;
+        ~TimerMock() override;
 
         /**
          * @brief Initialize the timer with the specified mode
@@ -99,4 +99,4 @@ namespace mex_hal
     };
 }
 
-#endif //MEX_HAL_TIMER_LINUX_H
+#endif //MEX_HAL_TIMER_MOCK_H

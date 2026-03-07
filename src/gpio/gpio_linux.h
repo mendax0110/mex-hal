@@ -3,6 +3,7 @@
 
 #include "../../include/hal/gpio.h"
 #include "../../include/hal/resource_manager.h"
+#include "../../include/hal/file_descriptor.h"
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>

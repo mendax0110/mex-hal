@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <hal/core.h>
 #include <hal/pwm.h>
+#include <mock/hal_mock.h>
+#include <mock/pwm_mock.h>
 
 using namespace mex_hal;
 
@@ -9,7 +11,7 @@ class PWMTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        hal = createHAL(HALType::LINUX);
+        hal = std::make_unique<HALMock>();
         hal->init();
         pwm = hal->createPWM();
     }
@@ -31,69 +33,89 @@ TEST_F(PWMTest, CreatePWM)
 
 TEST_F(PWMTest, InitPWM)
 {
-    EXPECT_NO_THROW(pwm->init(0, 0));
+    EXPECT_TRUE(pwm->init(0, 0));
 }
 
 TEST_F(PWMTest, SetPeriod)
 {
-    pwm->init(0, 0);
-    EXPECT_NO_THROW(pwm->setPeriod(20000000));  // 20ms
+    ASSERT_TRUE(pwm->init(0, 0));
+    EXPECT_TRUE(pwm->setPeriod(20000000));
+    EXPECT_EQ(pwm->getPeriod(), 20000000u);
+}
+
+TEST_F(PWMTest, SetPeriodBeforeInitFails)
+{
+    EXPECT_FALSE(pwm->setPeriod(20000000));
 }
 
 TEST_F(PWMTest, SetDutyCycle)
 {
-    pwm->init(0, 0);
-    pwm->setPeriod(20000000);
-    EXPECT_NO_THROW(pwm->setDutyCycle(10000000));  // 10ms
+    ASSERT_TRUE(pwm->init(0, 0));
+    ASSERT_TRUE(pwm->setPeriod(20000000));
+    EXPECT_TRUE(pwm->setDutyCycle(10000000));
+    EXPECT_EQ(pwm->getDutyCycle(), 10000000u);
 }
 
 TEST_F(PWMTest, SetDutyCyclePercent)
 {
-    pwm->init(0, 0);
-    pwm->setPeriod(20000000);
-    EXPECT_NO_THROW(pwm->setDutyCyclePercent(50.0f));
+    ASSERT_TRUE(pwm->init(0, 0));
+    ASSERT_TRUE(pwm->setPeriod(20000000));
+    EXPECT_TRUE(pwm->setDutyCyclePercent(50.0f));
+    EXPECT_EQ(pwm->getDutyCycle(), 10000000u);
 }
 
 TEST_F(PWMTest, Enable)
 {
-    pwm->init(0, 0);
-    pwm->setPeriod(20000000);
-    pwm->setDutyCyclePercent(50.0f);
-    EXPECT_NO_THROW(pwm->enable(true));
+    ASSERT_TRUE(pwm->init(0, 0));
+    ASSERT_TRUE(pwm->setPeriod(20000000));
+    ASSERT_TRUE(pwm->setDutyCyclePercent(50.0f));
+    EXPECT_TRUE(pwm->enable(true));
+    EXPECT_TRUE(pwm->isEnabled());
 }
 
 TEST_F(PWMTest, Disable)
 {
-    pwm->init(0, 0);
-    pwm->enable(true);
-    EXPECT_NO_THROW(pwm->enable(false));
+    ASSERT_TRUE(pwm->init(0, 0));
+    ASSERT_TRUE(pwm->enable(true));
+    EXPECT_TRUE(pwm->isEnabled());
+    EXPECT_TRUE(pwm->enable(false));
+    EXPECT_FALSE(pwm->isEnabled());
+}
+
+TEST_F(PWMTest, EnableBeforeInitFails)
+{
+    EXPECT_FALSE(pwm->enable(true));
 }
 
 TEST_F(PWMTest, SetPolarity)
 {
-    pwm->init(0, 0);
-    EXPECT_NO_THROW(pwm->setPolarity(false));
-    EXPECT_NO_THROW(pwm->setPolarity(true));
+    ASSERT_TRUE(pwm->init(0, 0));
+    EXPECT_TRUE(pwm->setPolarity(false));
+    EXPECT_TRUE(pwm->setPolarity(true));
 }
 
 TEST_F(PWMTest, DutyCycleRange)
 {
-    pwm->init(0, 0);
-    pwm->setPeriod(20000000);
-    
-    EXPECT_NO_THROW(pwm->setDutyCyclePercent(0.0f));
-    EXPECT_NO_THROW(pwm->setDutyCyclePercent(25.0f));
-    EXPECT_NO_THROW(pwm->setDutyCyclePercent(50.0f));
-    EXPECT_NO_THROW(pwm->setDutyCyclePercent(75.0f));
-    EXPECT_NO_THROW(pwm->setDutyCyclePercent(100.0f));
+    ASSERT_TRUE(pwm->init(0, 0));
+    ASSERT_TRUE(pwm->setPeriod(20000000));
+
+    EXPECT_TRUE(pwm->setDutyCyclePercent(0.0f));
+    EXPECT_EQ(pwm->getDutyCycle(), 0u);
+
+    EXPECT_TRUE(pwm->setDutyCyclePercent(100.0f));
+    EXPECT_EQ(pwm->getDutyCycle(), 20000000u);
 }
 
 TEST_F(PWMTest, PeriodValidation)
 {
-    pwm->init(0, 0);
-    
-    // Test common PWM frequencies
-    EXPECT_NO_THROW(pwm->setPeriod(20000000));   // 50 Hz (servo)
-    EXPECT_NO_THROW(pwm->setPeriod(1000000));    // 1 kHz
-    EXPECT_NO_THROW(pwm->setPeriod(100000));     // 10 kHz
+    ASSERT_TRUE(pwm->init(0, 0));
+
+    EXPECT_TRUE(pwm->setPeriod(20000000));
+    EXPECT_EQ(pwm->getPeriod(), 20000000u);
+
+    EXPECT_TRUE(pwm->setPeriod(1000000));
+    EXPECT_EQ(pwm->getPeriod(), 1000000u);
+
+    EXPECT_TRUE(pwm->setPeriod(100000));
+    EXPECT_EQ(pwm->getPeriod(), 100000u);
 }

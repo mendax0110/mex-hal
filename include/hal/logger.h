@@ -131,6 +131,20 @@ namespace mex_hal
          * @param message Message to log
          */
         void fatal(const std::string& message);
+
+        /**
+         * @brief Set the maximum file size for log rotation
+         *
+         * @param maxSize Maximum file size in bytes
+         */
+        void setMaxFileSize(size_t maxSize);
+
+        /**
+         * @brief Set the maximum number of backup log files to keep
+         *
+         * @param maxFiles Maximum number of backup files
+         */
+        void setMaxBackupFiles(uint8_t maxFiles);
         
     private:
         LogLevel currentLevel_;
@@ -139,6 +153,8 @@ namespace mex_hal
         std::string logFilePath_;
         std::ofstream logFile_;
         std::mutex logMutex_;
+        size_t maxFileSize_ = 0;
+        uint8_t maxBackupFiles_ = 0;
 
         /**
          * @brief Construct a new Logger object
@@ -151,7 +167,7 @@ namespace mex_hal
          * 
          * @return std::string 
          */
-        std::string getCurrentTimestamp() const;
+        static std::string getCurrentTimestamp() ;
         
         /**
          * @brief Convert LogLevel to string
@@ -159,7 +175,7 @@ namespace mex_hal
          * @param level LogLevel to convert
          * @return std::string 
          */
-        std::string logLevelToString(LogLevel level) const;
+        static std::string logLevelToString(LogLevel level) ;
         
         /**
          * @brief Get the Log Color object
@@ -167,7 +183,7 @@ namespace mex_hal
          * @param level LogLevel
          * @return std::string 
          */
-        std::string getLogColor(LogLevel level) const;
+        static std::string getLogColor(LogLevel level);
         
         /**
          * @brief Write the log message to the appropriate outputs
@@ -176,6 +192,11 @@ namespace mex_hal
          * @param message Message to log
          */
         void writeLog(LogLevel level, const std::string& message);
+
+        /**
+         * @brief Rotate the log file when it exceeds the maximum file size
+         */
+        void rotateLogFile();
     };
 
 /**

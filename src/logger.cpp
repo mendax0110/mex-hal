@@ -1,6 +1,8 @@
 #include "../include/hal/logger.h"
 #include <ctime>
 #include <iomanip>
+#include <cstdio>
+#include <sys/stat.h>
 
 using namespace mex_hal;
 
@@ -66,26 +68,22 @@ void Logger::enableFileLogging(bool enable, const std::string& filepath)
     }
 }
 
-std::string Logger::getCurrentTimestamp() const
+std::string Logger::getCurrentTimestamp()
 {
-    auto now = std::chrono::system_clock::now();
-    auto now_time_t = std::chrono::system_clock::to_time_t(now);
-    auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
-    
+    const auto now = std::chrono::system_clock::now();
+    const auto now_time_t = std::chrono::system_clock::to_time_t(now);
+    const auto now_ms = std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch()) % 1000;
+
     std::tm tm_buf{};
-#ifdef _WIN32
-    localtime_s(&tm_buf, &now_time_t);
-#else
     localtime_r(&now_time_t, &tm_buf);
-#endif
-    
+
     std::ostringstream oss;
     oss << std::put_time(&tm_buf, "%Y-%m-%d %H:%M:%S")
         << '.' << std::setfill('0') << std::setw(3) << now_ms.count();
     return oss.str();
 }
 
-std::string Logger::logLevelToString(LogLevel level) const
+std::string Logger::logLevelToString(const LogLevel level)
 {
     switch (level)
     {
@@ -100,7 +98,7 @@ std::string Logger::logLevelToString(LogLevel level) const
     }
 }
 
-std::string Logger::getLogColor(LogLevel level) const
+std::string Logger::getLogColor(const LogLevel level)
 {
     switch (level)
     {
@@ -114,7 +112,7 @@ std::string Logger::getLogColor(LogLevel level) const
     }
 }
 
-void Logger::writeLog(LogLevel level, const std::string& message)
+void Logger::writeLog(const LogLevel level, const std::string& message)
 {
     if (level < currentLevel_ || currentLevel_ == LogLevel::OFF)
     {
@@ -123,24 +121,25 @@ void Logger::writeLog(LogLevel level, const std::string& message)
 
     std::lock_guard<std::mutex> lock(logMutex_);
     
-    std::string timestamp = getCurrentTimestamp();
-    std::string levelStr = logLevelToString(level);
-    std::string logMessage = "[" + timestamp + "] [" + levelStr + "] " + message;
+    const std::string timestamp = getCurrentTimestamp();
+    const std::string levelStr = logLevelToString(level);
+    const std::string logMessage = "[" + timestamp + "] [" + levelStr + "] " + message;
     
     if (logToConsole_)
     {
-        std::string colorCode = getLogColor(level);
+        const std::string colorCode = getLogColor(level);
         std::cout << colorCode << logMessage << "\033[0m" << std::endl;
     }
     
     if (logToFile_ && logFile_.is_open())
     {
+        rotateLogFile();
         logFile_ << logMessage << std::endl;
         logFile_.flush();
     }
 }
 
-void Logger::log(LogLevel level, const std::string& message)
+void Logger::log(const LogLevel level, const std::string& message)
 {
     writeLog(level, message);
 }
@@ -173,4 +172,48 @@ void Logger::error(const std::string& message)
 void Logger::fatal(const std::string& message)
 {
     writeLog(LogLevel::FATAL, message);
+}
+
+void Logger::setMaxBackupFiles(const uint8_t maxFiles)
+{
+    std::lock_guard<std::mutex> lock(logMutex_);
+    maxBackupFiles_ = maxFiles;
+}
+
+void Logger::setMaxFileSize(const size_t maxSize)
+{
+    std::lock_guard<std::mutex> lock(logMutex_);
+    maxFileSize_ = maxSize;
+}
+
+void Logger::rotateLogFile()
+{
+    if (maxFileSize_ == 0 || !logToFile_ || !logFile_.is_open())
+    {
+        return;
+    }
+
+    struct stat fileStat{};
+    if (stat(logFilePath_.c_str(), &fileStat) != 0)
+    {
+        return;
+    }
+
+    if (static_cast<size_t>(fileStat.st_size) < maxFileSize_)
+    {
+        return;
+    }
+
+    logFile_.close();
+
+    for (int i = maxBackupFiles_ - 1; i >= 1; --i)
+    {
+        std::string oldName = logFilePath_ + "." + std::to_string(i);
+        std::string newName = logFilePath_ + "." + std::to_string(i + 1);
+        std::rename(oldName.c_str(), newName.c_str());
+    }
+
+    const std::string firstBackup = logFilePath_ + ".1";
+    std::rename(logFilePath_.c_str(), firstBackup.c_str());
+    logFile_.open(logFilePath_, std::ios::app);
 }

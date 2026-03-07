@@ -319,6 +319,40 @@ void ResourceManager::printMemoryReport() const
     std::cout << "========================================\n";
 }
 
+bool ResourceManager::addDependency(const uint64_t resourceId, const uint64_t dependsOnId)
+{
+    std::lock_guard<std::mutex> lock(resourceMutex_);
+
+    if (resources_.find(resourceId) == resources_.end() ||
+        resources_.find(dependsOnId) == resources_.end())
+    {
+        return false;
+    }
+
+    auto& deps = dependencies_[resourceId];
+    for (const uint64_t existing : deps)
+    {
+        if (existing == dependsOnId)
+        {
+            return true;
+        }
+    }
+
+    deps.push_back(dependsOnId);
+    return true;
+}
+
+std::vector<uint64_t> ResourceManager::getDependencies(const uint64_t resourceId) const
+{
+    std::lock_guard<std::mutex> lock(resourceMutex_);
+    auto it = dependencies_.find(resourceId);
+    if (it != dependencies_.end())
+    {
+        return it->second;
+    }
+    return {};
+}
+
 // ResourceGuard implementation
 ResourceGuard::ResourceGuard(const uint64_t resourceId)
     : resourceId_(resourceId)

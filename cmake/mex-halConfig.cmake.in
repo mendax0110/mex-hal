@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+
+include("${CMAKE_CURRENT_LIST_DIR}/mex-halTargets.cmake")
+check_required_components(mex-hal)

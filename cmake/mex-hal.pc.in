@@ -1,0 +1,9 @@
+prefix=@CMAKE_INSTALL_PREFIX@
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: mex-hal
+Description: Hardware Abstraction Layer for Embedded Linux
+Version: @HAL_VERSION_MAJOR@.@HAL_VERSION_MINOR@.@HAL_VERSION_PATCH@
+Libs: -L${libdir} -lhal -lpthread -lrt
+Cflags: -I${includedir}

@@ -32,6 +32,9 @@ find_package(Threads REQUIRED)
 # Realtime requirements
 if(BUILD_RT)
     find_library(RT_LIBRARY rt)
+    if(NOT RT_LIBRARY)
+        message(FATAL_ERROR "librt not found. Install libc6-dev or disable BUILD_RT.")
+    endif()
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBXML2 REQUIRED libxml-2.0)
 endif()
@@ -160,6 +163,22 @@ target_include_directories(hal PUBLIC
         $<INSTALL_INTERFACE:include>
 )
 
+# Mock library for testing
+add_library(hal-mock
+        src/mock/gpio_mock.cpp
+        src/mock/spi_mock.cpp
+        src/mock/i2c_mock.cpp
+        src/mock/uart_mock.cpp
+        src/mock/pwm_mock.cpp
+        src/mock/adc_mock.cpp
+        src/mock/timer_mock.cpp
+)
+target_include_directories(hal-mock PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/include
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(hal-mock PUBLIC Threads::Threads)
+
 add_executable(hal_main src/main.cpp src/cli_utils.cpp)
 target_link_libraries(hal_main PRIVATE hal)
 
@@ -183,6 +202,42 @@ else()
 endif()
 
 # Installation
-install(TARGETS hal EXPORT hal-config DESTINATION lib)
+install(TARGETS hal EXPORT mex-hal-targets
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib
+        RUNTIME DESTINATION bin
+)
 install(DIRECTORY include/hal DESTINATION include)
-install(EXPORT hal-config DESTINATION share/hal/cmake)
+install(EXPORT mex-hal-targets
+        FILE mex-halTargets.cmake
+        NAMESPACE mex_hal::
+        DESTINATION lib/cmake/mex-hal
+)
+
+# Generate CMake package config
+include(CMakePackageConfigHelpers)
+configure_package_config_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mex-halConfig.cmake.in
+        ${CMAKE_CURRENT_BINARY_DIR}/mex-halConfig.cmake
+        INSTALL_DESTINATION lib/cmake/mex-hal
+)
+write_basic_package_version_file(
+        ${CMAKE_CURRENT_BINARY_DIR}/mex-halConfigVersion.cmake
+        VERSION ${HAL_VERSION_MAJOR}.${HAL_VERSION_MINOR}.${HAL_VERSION_PATCH}
+        COMPATIBILITY SameMajorVersion
+)
+install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/mex-halConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/mex-halConfigVersion.cmake
+        DESTINATION lib/cmake/mex-hal
+)
+
+# Generate pkg-config file
+configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/cmake/mex-hal.pc.in
+        ${CMAKE_CURRENT_BINARY_DIR}/mex-hal.pc
+        @ONLY
+)
+install(FILES ${CMAKE_CURRENT_BINARY_DIR}/mex-hal.pc
+        DESTINATION lib/pkgconfig
+)

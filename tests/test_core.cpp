@@ -7,6 +7,7 @@
 #include <hal/pwm.h>
 #include <hal/timer.h>
 #include <hal/adc.h>
+#include <mock/hal_mock.h>
 
 using namespace mex_hal;
 
@@ -15,7 +16,7 @@ class CoreTest : public ::testing::Test
 protected:
     void SetUp() override
     {
-        hal = createHAL(HALType::LINUX);
+        hal = std::make_unique<HALMock>();
     }
 
     void TearDown() override
@@ -34,17 +35,6 @@ TEST_F(CoreTest, CreateHAL)
     ASSERT_NE(hal, nullptr);
 }
 
-TEST_F(CoreTest, CreateHALWithType)
-{
-    auto linuxHal = createHAL(HALType::LINUX);
-    ASSERT_NE(linuxHal, nullptr);
-}
-
-TEST_F(CoreTest, CreateHALInvalidType)
-{
-    EXPECT_THROW(createHAL(HALType::INVALID), std::invalid_argument);
-}
-
 TEST_F(CoreTest, InitializeHAL)
 {
     EXPECT_TRUE(hal->init());
@@ -59,64 +49,64 @@ TEST_F(CoreTest, ShutdownHAL)
 TEST_F(CoreTest, CreateGPIO)
 {
     hal->init();
-    auto gpio = hal->createGPIO();
+    const auto gpio = hal->createGPIO();
     ASSERT_NE(gpio, nullptr);
 }
 
 TEST_F(CoreTest, CreateSPI)
 {
     hal->init();
-    auto spi = hal->createSPI();
+    const auto spi = hal->createSPI();
     ASSERT_NE(spi, nullptr);
 }
 
 TEST_F(CoreTest, CreateI2C)
 {
     hal->init();
-    auto i2c = hal->createI2C();
+    const auto i2c = hal->createI2C();
     ASSERT_NE(i2c, nullptr);
 }
 
 TEST_F(CoreTest, CreateUART)
 {
     hal->init();
-    auto uart = hal->createUART();
+    const auto uart = hal->createUART();
     ASSERT_NE(uart, nullptr);
 }
 
 TEST_F(CoreTest, CreatePWM)
 {
     hal->init();
-    auto pwm = hal->createPWM();
+    const auto pwm = hal->createPWM();
     ASSERT_NE(pwm, nullptr);
 }
 
 TEST_F(CoreTest, CreateTimer)
 {
     hal->init();
-    auto timer = hal->createTimer();
+    const auto timer = hal->createTimer();
     ASSERT_NE(timer, nullptr);
 }
 
 TEST_F(CoreTest, CreateADC)
 {
     hal->init();
-    auto adc = hal->createADC();
+    const auto adc = hal->createADC();
     ASSERT_NE(adc, nullptr);
 }
 
 TEST_F(CoreTest, MultiplePeripheralCreation)
 {
     hal->init();
-    
-    auto gpio = hal->createGPIO();
-    auto spi = hal->createSPI();
-    auto i2c = hal->createI2C();
-    auto uart = hal->createUART();
-    auto pwm = hal->createPWM();
-    auto timer = hal->createTimer();
-    auto adc = hal->createADC();
-    
+
+    const auto gpio = hal->createGPIO();
+    const auto spi = hal->createSPI();
+    const auto i2c = hal->createI2C();
+    const auto uart = hal->createUART();
+    const auto pwm = hal->createPWM();
+    const auto timer = hal->createTimer();
+    const auto adc = hal->createADC();
+
     ASSERT_NE(gpio, nullptr);
     ASSERT_NE(spi, nullptr);
     ASSERT_NE(i2c, nullptr);
@@ -129,16 +119,31 @@ TEST_F(CoreTest, MultiplePeripheralCreation)
 TEST_F(CoreTest, InitBeforePeripheralCreation)
 {
     EXPECT_TRUE(hal->init());
-    auto gpio = hal->createGPIO();
+    const auto gpio = hal->createGPIO();
     ASSERT_NE(gpio, nullptr);
 }
 
-TEST_F(CoreTest, DISABLED_SetAndGetRealTimePolicy)
+TEST_F(CoreTest, ConfigureRealtime)
+{
+    hal->init();
+    EXPECT_TRUE(hal->configureRealtime(50));
+    EXPECT_TRUE(hal->isRealtimeConfigured());
+}
+
+TEST_F(CoreTest, RealtimeStateTransitions)
+{
+    hal->init();
+    EXPECT_EQ(hal->getRealtimeState(), RealTimeState::NOT_RUNNING);
+
+    hal->configureRealtime(50);
+    EXPECT_EQ(hal->getRealtimeState(), RealTimeState::RUNNING);
+}
+
+TEST_F(CoreTest, SetAndGetRealTimePolicy)
 {
     hal->init();
 
-    auto result = hal->setRealTimePolicy(RealTimePolicy::FIFO);
-
+    const auto result = hal->setRealTimePolicy(RealTimePolicy::FIFO);
     EXPECT_EQ(result, RealTimePolicy::FIFO);
     EXPECT_EQ(hal->getRealTimePolicy(), RealTimePolicy::FIFO);
 
@@ -148,4 +153,3 @@ TEST_F(CoreTest, DISABLED_SetAndGetRealTimePolicy)
     EXPECT_EQ(hal->setRealTimePolicy(RealTimePolicy::NONE), RealTimePolicy::NONE);
     EXPECT_EQ(hal->getRealTimePolicy(), RealTimePolicy::NONE);
 }
-

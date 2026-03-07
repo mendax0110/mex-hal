@@ -1,40 +1,37 @@
-#ifndef MEX_HAL_I2C_LINUX_H
-#define MEX_HAL_I2C_LINUX_H
+#ifndef MEX_HAL_I2C_MOCK_H
+#define MEX_HAL_I2C_MOCK_H
 
 #include "../../include/hal/i2c.h"
-#include "../../include/hal/file_descriptor.h"
-#include "../../include/hal/resource_manager.h"
-#include <fcntl.h>
-#include <unistd.h>
-#include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
-#include <stdexcept>
 #include <mutex>
+#include <unordered_map>
+#include <deque>
 
 /// @brief mex_hal Hardware Abstraction Layer \namespace mex_hal
 namespace mex_hal
 {
-    /// @brief I2C Linux implementation class \class I2CLinux
-    class I2CLinux final : public I2CInterface
+    /// @brief Mock I2C implementation for testing \class I2CMock
+    class I2CMock final : public I2CInterface
     {
     private:
-        FileDescriptor fd_;
-        uint8_t currentBus_ = 0;
+        bool initialized_ = false;
+        uint8_t bus_ = 0;
         uint8_t currentAddress_ = 0;
         bool addressSet_ = false;
-        uint64_t resourceId_ = 0;
-        mutable std::mutex i2cMutex_;
+        uint32_t speed_ = 100000;
+        mutable std::mutex mutex_;
+        std::unordered_map<uint8_t, std::deque<std::vector<uint8_t>>> deviceData_;
+        std::unordered_map<uint8_t, std::vector<uint8_t>> lastWritten_;
 
     public:
         /**
          * @brief Constructor
          */
-        I2CLinux() = default;
+        I2CMock() = default;
 
         /**
          * @brief Destructor
          */
-        ~I2CLinux() override;
+        ~I2CMock() override = default;
 
         /**
          * @brief Initialize the I2C bus
@@ -81,14 +78,26 @@ namespace mex_hal
          */
         bool setSpeed(uint32_t speed) override;
 
-    private:
         /**
-         * @brief Internal method to set the I2C device address with mutex locking
-         * @param address The I2C device address to set
-         * @return A true if the address was successfully set, false otherwise
+         * @brief Enqueue read data for a device address (test helper)
+         * @param address The I2C device address
+         * @param data The data to return on read
          */
-        bool setDeviceAddressLocked(uint8_t address);
+        void enqueueReadData(uint8_t address, const std::vector<uint8_t>& data);
+
+        /**
+         * @brief Get last written data for a device address (test helper)
+         * @param address The I2C device address
+         * @return The last written data
+         */
+        std::vector<uint8_t> getLastWritten(uint8_t address) const;
+
+        /**
+         * @brief Check if I2C is initialized (test helper)
+         * @return A true if initialized, false otherwise
+         */
+        bool isInitialized() const;
     };
 }
 
-#endif //MEX_HAL_I2C_LINUX_H
+#endif //MEX_HAL_I2C_MOCK_H

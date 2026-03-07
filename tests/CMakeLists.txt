@@ -21,6 +21,7 @@ function(add_hal_test TEST_NAME)
     add_executable(${TEST_NAME} ${ARGN})
     target_link_libraries(${TEST_NAME} PRIVATE 
         hal
+        hal-mock
         gtest_main
         gmock_main
         Threads::Threads
@@ -48,3 +49,9 @@ add_hal_test(test_adc test_adc.cpp)
 
 # Real-time tests
 add_hal_test(test_realtime test_realtime.cpp)
+
+# Integration tests
+add_hal_test(test_integration test_integration.cpp)
+
+# Edge-case / error tests
+add_hal_test(test_edge_cases test_edge_cases.cpp)

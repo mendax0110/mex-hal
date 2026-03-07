@@ -2,8 +2,8 @@
 #define MEX_HAL_CLI_UTILS_H
 
 #include "../include/hal/core.h"
-#include "../src/device_config/device_config.h"
-#include "../src/sys_config/sys_config.h"
+#include "../../src/device_config/device_config.h"
+#include "../../src/sys_config/sys_config.h"
 #include <memory>
 #include <string>
 

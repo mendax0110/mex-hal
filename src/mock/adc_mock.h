@@ -1,61 +1,41 @@
-#ifndef MEX_HAL_ADC_LINUX_H
-#define MEX_HAL_ADC_LINUX_H
+#ifndef MEX_HAL_ADC_MOCK_H
+#define MEX_HAL_ADC_MOCK_H
 
 #include "../../include/hal/adc.h"
-#include "../../include/hal/resource_manager.h"
-#include <fstream>
-#include <string>
+#include <mutex>
+#include <unordered_map>
 #include <thread>
 #include <atomic>
-#include <mutex>
 
 /// @brief mex_hal Hardware Abstraction Layer \namespace mex_hal
 namespace mex_hal
 {
-    /// @brief ADC Linux implementation class \class ADCLinux
-    class ADCLinux final : public ADCInterface
+    /// @brief Mock ADC implementation for testing \class ADCMock
+    class ADCMock final : public ADCInterface
     {
     private:
+        bool initialized_ = false;
         uint8_t device_ = 0;
         ADCConfig config_{};
+        mutable std::mutex mutex_;
+        std::unordered_map<uint8_t, bool> enabledChannels_;
+        std::unordered_map<uint8_t, uint16_t> channelValues_;
         std::atomic<bool> continuousRunning_{false};
         std::atomic<bool> shouldStopContinuous_{false};
         std::thread continuousThread_;
         ADCReadCallback continuousCallback_{nullptr};
         uint8_t continuousChannel_ = 0;
-        uint64_t resourceId_ = 0;
-        mutable std::mutex adcMutex_;
-        std::mutex callbackMutex_;
 
-        /**
-         * @brief Get the device path for a given channel
-         * @param channel The ADC channel number
-         * @return A string representing the device path
-         */
-        std::string getDevicePath(uint8_t channel) const;
-
-        /**
-         * @brief Read raw ADC value from a specific channel
-         * @param channel The ADC channel number
-         * @return The raw ADC value
-         */
-        uint16_t readRaw(uint8_t channel) const;
-
-        /**
-         * @brief Continuous read loop for ADC
-         */
-        void continuousReadLoop();
-        
     public:
         /**
          * @brief Constructor
          */
-        ADCLinux() = default;
+        ADCMock() = default;
 
         /**
          * @brief Destructor
          */
-        ~ADCLinux() override;
+        ~ADCMock() override;
 
         /**
          * @brief Initialize the ADC device
@@ -129,7 +109,20 @@ namespace mex_hal
          * @return The voltage value as a float
          */
         float readVoltage(uint8_t channel, float referenceVoltage) override;
+
+        /**
+         * @brief Set the value for a channel (test helper)
+         * @param channel The ADC channel number
+         * @param value The raw ADC value to set
+         */
+        void setChannelValue(uint8_t channel, uint16_t value);
+
+        /**
+         * @brief Check if ADC is initialized (test helper)
+         * @return A true if initialized, false otherwise
+         */
+        bool isInitialized() const;
     };
 }
 
-#endif //MEX_HAL_ADC_LINUX_H
+#endif //MEX_HAL_ADC_MOCK_H

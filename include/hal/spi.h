@@ -65,6 +65,23 @@ namespace mex_hal
          */
         virtual bool setMode(SPIMode mode) = 0;
 
+        virtual bool transferDMA(const uint8_t* txData, uint8_t* rxData, size_t length)
+        {
+            const std::vector<uint8_t> tx(txData, txData + length);
+            std::vector<uint8_t> rx;
+
+            if (!transfer(tx, rx))
+            {
+                return false;
+            }
+
+            if (rxData && rx.size() >= length)
+            {
+                std::copy(rx.begin(), rx.begin() + length, rxData);
+            }
+            return true;
+        }
+
     protected:
         inline static const std::string DEV_SPIDEV = "/dev/spidev";
     };

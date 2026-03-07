@@ -167,6 +167,21 @@ namespace mex_hal
          */
         void printMemoryReport() const;
 
+        /**
+         * @brief Add a dependency between two resources (e.g., resourceId depends on dependsOnId)
+         * @param resourceId The resource that has a dependency
+         * @param dependsOnId The resource that is depended on
+         * @return A boolean indicating whether the dependency was successfully added (true) or not (false)
+         */
+        bool addDependency(uint64_t resourceId, uint64_t dependsOnId);
+
+        /**
+         * @brief Get dependencies for a resource
+         * @param resourceId A resource ID to query dependencies for
+         * @return A vector of resource IDs that the specified resource depends on, or an empty vector if there are no dependencies or if the resource ID is invalid
+         */
+        std::vector<uint64_t> getDependencies(uint64_t resourceId) const;
+
         // Prevent copying and assignment
         ResourceManager(const ResourceManager&) = delete;
         ResourceManager& operator=(const ResourceManager&) = delete;
@@ -180,6 +195,7 @@ namespace mex_hal
         mutable std::mutex resourceMutex_;
         std::unordered_map<uint64_t, std::unique_ptr<ResourceInfo>> resources_;
         std::unordered_map<void*, uint64_t> memoryAddressToId_;
+        std::unordered_map<uint64_t, std::vector<uint64_t>> dependencies_;
         std::atomic<uint64_t> nextResourceId_{1};
         size_t totalAllocatedMemory_{0};
     };

@@ -144,18 +144,18 @@ void GPIOLinux::monitorInterrupt(const uint8_t pin, uint64_t callbackId) const
 {
     const std::string valuePath = SYS_CLASS_GPIO + std::to_string(pin) + "/value";
 
-    const int fd = open(valuePath.c_str(), O_RDONLY);
-    if (fd < 0)
+    FileDescriptor fd(open(valuePath.c_str(), O_RDONLY));
+    if (!fd.isValid())
     {
         return;
     }
 
     // Initial dummy read to clear any pending interrupts
     char buf[3];
-    ::read(fd, buf, sizeof(buf));
+    ::read(fd.get(), buf, sizeof(buf));
 
     pollfd pfd{};
-    pfd.fd = fd;
+    pfd.fd = fd.get();
     pfd.events = POLLPRI | POLLERR;
 
     while (!shutdownRequested_.load(std::memory_order_acquire))
@@ -165,8 +165,8 @@ void GPIOLinux::monitorInterrupt(const uint8_t pin, uint64_t callbackId) const
         if (ret > 0 && (pfd.revents & POLLPRI))
         {
             // Clear the event
-            lseek(fd, 0, SEEK_SET);
-            const int len = ::read(fd, buf, sizeof(buf));
+            lseek(fd.get(), 0, SEEK_SET);
+            const int len = ::read(fd.get(), buf, sizeof(buf));
             
             if (len > 0)
             {
@@ -179,7 +179,7 @@ void GPIOLinux::monitorInterrupt(const uint8_t pin, uint64_t callbackId) const
         }
     }
 
-    ::close(fd);
+    ::close(fd.get());
 }
 
 bool GPIOLinux::setInterrupt(const uint8_t pin, EdgeTrigger edge, InterruptCallback callback)
